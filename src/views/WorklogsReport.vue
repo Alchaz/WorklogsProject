@@ -1,0 +1,129 @@
+<template>
+    <div class="container my-4">
+      <h2 class="mb-3">Worklogs</h2>
+  
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <select class="form-select w-auto" v-model="filterType">
+          <option value="All">All</option>
+          <option value="UT">Undertime (UT)</option>
+          <option value="OT">Overtime (OT)</option>
+        </select>
+      </div>
+  
+      <div v-for="group in pagedData" :key="group.date" class="mb-4 border p-3 rounded">
+        <div class="d-flex justify-content-between">
+          <h5>{{ group.date }} - {{ group.user }}</h5>
+          <span>
+            {{ group.totalHours }} hrs
+            <span v-if="group.status" class="badge bg-secondary ms-2">{{ group.status }}</span>
+          </span>
+        </div>
+        <ul class="list-group mt-2">
+          <li v-for="entry in group.entries" :key="entry.id" class="list-group-item">
+            {{ entry.description }} — {{ entry.workedHours }} hrs
+          </li>
+        </ul>
+      </div>
+  
+
+      <nav>
+        <ul class="pagination justify-content-center">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <button class="page-link" @click="changePage(currentPage - 1)">Previous</button>
+          </li>
+          <li class="page-item" v-for="page in totalPages" :key="page" :class="{ active: page === currentPage }">
+            <button class="page-link" @click="changePage(page)">{{ page }}</button>
+          </li>
+          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+            <button class="page-link" @click="changePage(currentPage + 1)">Next</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </template>
+  
+  <script>
+import { GetUserLogged } from '@/api-helpers/AuthHelper';
+import axios from 'axios';
+
+  export default {
+    data() {
+      return {
+        rawApiData: [], 
+        filterType: 'All',
+        pageSize: 2,
+        currentPage: 1,
+      };
+    },
+    created() {
+      this.fetchData();
+    },
+    computed: {
+      flatData() {
+        return this.rawApiData.flat();
+      },
+      groupedData() {
+        const grouped = {};
+  
+        this.flatData.forEach((entry) => {
+          if (!grouped[entry.date]) grouped[entry.date] = [];
+          grouped[entry.date].push(entry);
+        });
+  
+        const result = Object.entries(grouped).map(([date, items]) => {
+          const total = items.reduce((sum, e) => sum + e.workedHours, 0);
+          const user = items[0].user;
+          let label = '';
+          if (total < user.dailyMinHours) label = 'UT';
+          else if (total > user.dailyMaxHours) label = 'OT';
+  
+          return {
+            date,
+            totalHours: total,
+            status: label,
+            user: user.name,
+            entries: items,
+          };
+        });
+  
+        return result.sort((a, b) => new Date(b.date) - new Date(a.date));
+      },
+      filteredData() {
+        if (this.filterType === 'UT') return this.groupedData.filter((d) => d.status === 'UT');
+        if (this.filterType === 'OT') return this.groupedData.filter((d) => d.status === 'OT');
+        return this.groupedData;
+      },
+      totalPages() {
+        return Math.ceil(this.filteredData.length / this.pageSize);
+      },
+      pagedData() {
+        const start = (this.currentPage - 1) * this.pageSize;
+        return this.filteredData.slice(start, start + this.pageSize);
+      },
+    },
+    methods: {
+      changePage(newPage) {
+        if (newPage >= 1 && newPage <= this.totalPages) {
+          this.currentPage = newPage;
+        }
+      },
+      async fetchData() {
+        
+        try {
+                const token = GetUserLogged().Token;
+                const response = await axios.get('https://localhost:7155/Worklog', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }); 
+                this.rawApiData =  response.data
+    
+                } catch (err) {
+                  console.log(err);
+                }
+        
+      },
+    },
+  };
+  </script>
+  
