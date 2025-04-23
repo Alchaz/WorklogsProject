@@ -3,14 +3,38 @@
       <h2 class="mb-3">Worklogs</h2>
   
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <select class="form-select w-auto" v-model="filterType">
+        <select class="form-select w-auto"  v-model="filterType" @change="changeFilter()">
           <option value="All">All</option>
           <option value="UT">Undertime (UT)</option>
           <option value="OT">Overtime (OT)</option>
         </select>
       </div>
   
-      <div v-for="group in pagedData" :key="group.date" class="mb-4 border p-3 rounded">
+
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th v-if="isAdmin">User</th>
+            <th>Date</th>
+            <th>Total Hours</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="group in pagedData" :key="group.date">
+            <td v-if="isAdmin">{{ group.user }}</td>
+            <td>{{ group.date }}</td>
+            <td>{{ group.totalHours }} hrs</td>
+            <td>
+              <span v-if="group.status" class="badge bg-secondary">{{ group.status }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+    
+    <!--
+       <div v-for="group in pagedData" :key="group.date" class="mb-4 border p-3 rounded">
         <div class="d-flex justify-content-between">
           <h5>{{ group.date }} - {{ group.user }}</h5>
           <span>
@@ -24,7 +48,7 @@
           </li>
         </ul>
       </div>
-  
+  -->
 
       <nav>
         <ul class="pagination justify-content-center">
@@ -44,6 +68,8 @@
   
   <script>
 import { GetUserLogged } from '@/api-helpers/AuthHelper';
+import { UserRoleEnum } from '@/helpers/Enums';
+
 import axios from 'axios';
 
   export default {
@@ -51,8 +77,10 @@ import axios from 'axios';
       return {
         rawApiData: [], 
         filterType: 'All',
-        pageSize: 2,
+        pageSize: 5,
         currentPage: 1,
+        isAdmin: false,
+        totalPages: 0
       };
     },
     created() {
@@ -70,7 +98,7 @@ import axios from 'axios';
           grouped[entry.date].push(entry);
         });
   
-        const result = Object.entries(grouped).map(([date, items]) => {
+          const result = Object.entries(grouped).map(([date, items]) => {
           const total = items.reduce((sum, e) => sum + e.workedHours, 0);
           const user = items[0].user;
           let label = '';
@@ -88,24 +116,22 @@ import axios from 'axios';
   
         return result.sort((a, b) => new Date(b.date) - new Date(a.date));
       },
-      filteredData() {
-        if (this.filterType === 'UT') return this.groupedData.filter((d) => d.status === 'UT');
-        if (this.filterType === 'OT') return this.groupedData.filter((d) => d.status === 'OT');
+        filteredData() {
         return this.groupedData;
       },
-      totalPages() {
-        return Math.ceil(this.filteredData.length / this.pageSize);
-      },
       pagedData() {
-        const start = (this.currentPage - 1) * this.pageSize;
-        return this.filteredData.slice(start, start + this.pageSize);
+        return this.filteredData;
       },
     },
     methods: {
       changePage(newPage) {
         if (newPage >= 1 && newPage <= this.totalPages) {
           this.currentPage = newPage;
+          this.fetchData();
         }
+      },
+      changeFilter() {
+          this.fetchData();
       },
       async fetchData() {
         
@@ -114,14 +140,20 @@ import axios from 'axios';
                 const response = await axios.get('https://localhost:7155/Worklog', {
                     headers: {
                         Authorization: `Bearer ${token}`
-                    }
-                }); 
-                this.rawApiData =  response.data
-    
-                } catch (err) {
-                  console.log(err);
+                    },params: {
+                filter: this.filterType === 'All' ? 'ALL' : this.filterType,
+                page: this.currentPage,
+                pageSize: this.pageSize
                 }
-        
+                }); 
+                console.log(response.data);
+                this.rawApiData =  response.data.worklogs
+                this.isAdmin = GetUserLogged().Role== UserRoleEnum.Admin;
+                this.totalPages = response.data.totalPages;
+              } catch (err) 
+              {
+                  console.log(err);
+              }
       },
     },
   };

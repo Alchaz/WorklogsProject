@@ -18,6 +18,16 @@
           />
         </div>
       <br/>
+      <div class="form-group">
+          <label  class="form-label"  >Password</label>
+          <input
+           class="form-control"
+            type="password"
+            id="pass"
+            placeholder="Enter password"
+          />
+        </div>
+      <br/>
       <div class="text-center">
         <button class="btn btn-primary" type="submit" :disabled="isSubmitting">
           {{ isSubmitting ? 'Logging in...' : 'Login' }}
@@ -55,7 +65,7 @@ import { ref } from 'vue';
     isSubmitting.value = true;
     
     try {
-      var loggedUser = await LogUser(form.value.userName );
+      var loggedUser = await LogUser(form.value.userName,"" );
       if (loggedUser) 
       {
         router.push('/home');

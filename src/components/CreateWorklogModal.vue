@@ -31,10 +31,13 @@
   </template>
   
   <script setup>
-  import { ref } from 'vue';
+  import { ref,defineEmits,onMounted  } from 'vue';
   import axios from 'axios';
-  //import * as bootstrap from 'bootstrap';
+  import * as bootstrap from 'bootstrap';
 import { GetUserLogged } from '@/api-helpers/AuthHelper';
+
+
+const emit = defineEmits(['created']);
 
   const worklog = ref({
     description: '',
@@ -42,6 +45,13 @@ import { GetUserLogged } from '@/api-helpers/AuthHelper';
     workedHours: 0,
   
   });
+
+  
+let modalEl=null;
+
+onMounted(() => {
+  modalEl = document.getElementById('createWorklogModal');
+});
   
   const handleSubmit = async () => {
     try {
@@ -51,9 +61,12 @@ import { GetUserLogged } from '@/api-helpers/AuthHelper';
         Authorization: `Bearer ${token}`
       }
     }); 
-    window.location.href = '/worklogs';
-    //const modal = bootstrap.Modal.getInstance(document.getElementById('createWorklogModal'));
-    //modal.hide();
+    emit('created');
+    if (modalEl) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      modalInstance?.hide();
+    }
+   
     } catch (err) {
       alert('Error saving worklog.');
     }

@@ -1,6 +1,8 @@
 
 <template>
-    <div class="container mt-5">
+     
+   
+   <div class="container mt-5">
       <h2 class="mb-4 text-center">Worklogs</h2>
       <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createWorklogModal">
       Add Worklog
@@ -11,8 +13,8 @@
             <th>Description</th>
             <th>Date</th>
             <th>Worked Hours</th>
-            <th>Set Hours</th>
-            <th>Actions</th>
+            <!--<th>Set Hours</th>
+            <th>Actions</th>-->
           </tr>
         </thead>
         <tbody>
@@ -20,12 +22,14 @@
             <td>{{ log.description }}</td>
             <td>{{ log.date }}</td>
             <td>{{ log.workedHours }}</td>
+            <!--
             <td>
               <input v-model="log.newWorkedHours" type="number" class="form-control" min="0" />
             </td>
             <td>
               <button class="btn btn-sm btn-success" @click="saveHours(log)">Save</button>
             </td>
+            -->
           </tr>
         </tbody>
       </table>
@@ -46,7 +50,7 @@ import CreateWorklogModal from '@/components/CreateWorklogModal.vue';
   const loadWorklogs = async () => {
     try {
       const token = GetUserLogged().Token;
-      const response = await axios.get('https://localhost:7155/Worklog', {
+      const response = await axios.get('https://localhost:7155/Worklog/WorklogsByUser', {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -61,7 +65,7 @@ import CreateWorklogModal from '@/components/CreateWorklogModal.vue';
     }
   };
   
-  const saveHours = async (log) => {
+ /* const saveHours = async (log) => {
     try {
         const token = GetUserLogged().Token;
       await axios.patch(`https://localhost:7155/Worklog/${log.id}`, {
@@ -75,7 +79,7 @@ import CreateWorklogModal from '@/components/CreateWorklogModal.vue';
     } catch (err) {
       error.value = 'Failed to update worklog.';
     }
-  };
+  };*/
   
   onMounted(loadWorklogs);
   </script>
